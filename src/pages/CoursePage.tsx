@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { getCourse, type Course } from '../api/courses'
 import { getCourseLessons, deleteLesson, getVideoStreamUrl, getFileDownloadUrl, getFileType, getFileExtension, type Lesson } from '../api/lessons'
-import { getLessonAssignments, type Assignment } from '../api/assignments'
+import { getLessonAssignments, deleteAssignment, type Assignment } from '../api/assignments'
 import { LessonModal } from '../components/LessonModal'
+import { AssignmentModal } from '../components/AssignmentModal'
 
 // Extended lesson with assignments loaded
 interface LessonWithAssignments extends Lesson {
@@ -24,6 +25,12 @@ export function CoursePage() {
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null)
   const [deleteConfirmLesson, setDeleteConfirmLesson] = useState<LessonWithAssignments | null>(null)
   const [deleting, setDeleting] = useState(false)
+
+  // Assignment modal states
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false)
+  const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null)
+  const [deleteConfirmAssignment, setDeleteConfirmAssignment] = useState<Assignment | null>(null)
+  const [deletingAssignment, setDeletingAssignment] = useState(false)
 
   const fetchLessons = async (token: string, cId: number) => {
     const lessonsData = await getCourseLessons(token, cId)
@@ -145,6 +152,66 @@ export function CoursePage() {
   const openEditLessonModal = (lesson: Lesson) => {
     setEditingLesson(lesson)
     setShowLessonModal(true)
+  }
+
+  // Open assignment modal for new assignment
+  const openNewAssignmentModal = () => {
+    setEditingAssignment(null)
+    setShowAssignmentModal(true)
+  }
+
+  // Open assignment modal for editing
+  const openEditAssignmentModal = (assignment: Assignment) => {
+    setEditingAssignment(assignment)
+    setShowAssignmentModal(true)
+  }
+
+  // Handle assignment creation/update success
+  const handleAssignmentSuccess = async () => {
+    const token = localStorage.getItem('access_token')
+    if (!token || !courseId) return
+
+    try {
+      const updatedLessons = await fetchLessons(token, parseInt(courseId))
+      setLessons(updatedLessons)
+
+      // Update selected lesson with new assignments
+      if (selectedLesson) {
+        const updated = updatedLessons.find(l => l.id === selectedLesson.id)
+        if (updated) setSelectedLesson(updated)
+      }
+    } catch (err) {
+      console.error('Error refreshing lessons:', err)
+    }
+
+    setEditingAssignment(null)
+  }
+
+  // Handle assignment deletion
+  const handleDeleteAssignment = async () => {
+    if (!deleteConfirmAssignment || !courseId || !selectedLesson) return
+
+    const token = localStorage.getItem('access_token')
+    if (!token) return
+
+    setDeletingAssignment(true)
+    try {
+      await deleteAssignment(token, parseInt(courseId), selectedLesson.id, deleteConfirmAssignment.id)
+
+      // Refresh lessons
+      const updatedLessons = await fetchLessons(token, parseInt(courseId))
+      setLessons(updatedLessons)
+
+      // Update selected lesson
+      const updated = updatedLessons.find(l => l.id === selectedLesson.id)
+      if (updated) setSelectedLesson(updated)
+
+      setDeleteConfirmAssignment(null)
+    } catch (err) {
+      console.error('Error deleting assignment:', err)
+    } finally {
+      setDeletingAssignment(false)
+    }
   }
 
   if (loading) {
@@ -286,7 +353,7 @@ export function CoursePage() {
                       <h1 className="text-[22px] lg:text-[26px] font-extrabold text-[#222222] font-['Montserrat']">
                         Урок {lessons.findIndex(l => l.id === selectedLesson.id) + 1}: {selectedLesson.title}
                       </h1>
-                      {selectedLesson.content && (
+                      {selectedLesson.content && !selectedLesson.content.startsWith('lessons/') && (
                         <p className="text-[14px] text-[#666666] mt-2 font-['Montserrat']">
                           {selectedLesson.content}
                         </p>
@@ -587,14 +654,22 @@ export function CoursePage() {
                             </div>
                             {isTeacher && (
                               <div className="flex items-center gap-1">
-                                <button className="p-2 rounded text-[#666666] hover:text-[#EA5616] hover:bg-[#EA5616]/10 transition-colors">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); openEditAssignmentModal(assignment); }}
+                                  className="p-2 rounded text-[#666666] hover:text-[#EA5616] hover:bg-[#EA5616]/10 transition-colors"
+                                  title="Редактировать"
+                                >
                                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                                   </svg>
                                 </button>
-                                <button className="p-2 rounded text-[#666666] hover:text-[#2C2D84] hover:bg-[#2C2D84]/10 transition-colors">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setDeleteConfirmAssignment(assignment); }}
+                                  className="p-2 rounded text-[#666666] hover:text-red-500 hover:bg-red-50 transition-colors"
+                                  title="Удалить"
+                                >
                                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                   </svg>
                                 </button>
                               </div>
@@ -605,7 +680,10 @@ export function CoursePage() {
 
                       {/* Add assignment button for teachers - Figma style */}
                       {isTeacher && (
-                        <button className="w-full h-[53px] bg-[#2C2D84] hover:bg-[#3d3e95] rounded-lg text-[20px] font-medium text-white transition-colors font-['Montserrat']">
+                        <button
+                          onClick={openNewAssignmentModal}
+                          className="w-full h-[53px] bg-[#2C2D84] hover:bg-[#3d3e95] rounded-lg text-[20px] font-medium text-white transition-colors font-['Montserrat']"
+                        >
                           Добавить задание
                         </button>
                       )}
@@ -705,7 +783,22 @@ export function CoursePage() {
         />
       )}
 
-      {/* Delete Confirmation Modal - Figma style */}
+      {/* Assignment Modal */}
+      {courseId && selectedLesson && (
+        <AssignmentModal
+          isOpen={showAssignmentModal}
+          onClose={() => {
+            setShowAssignmentModal(false)
+            setEditingAssignment(null)
+          }}
+          onSuccess={handleAssignmentSuccess}
+          courseId={parseInt(courseId)}
+          lessonId={selectedLesson.id}
+          assignment={editingAssignment}
+        />
+      )}
+
+      {/* Delete Lesson Confirmation Modal */}
       {deleteConfirmLesson && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div
@@ -737,6 +830,39 @@ export function CoursePage() {
                 className="px-6 py-3 bg-red-500 text-white rounded-lg text-[14px] font-medium hover:bg-red-600 transition-colors disabled:opacity-50 font-['Montserrat']"
               >
                 {deleting ? 'Удаление...' : 'Удалить'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Assignment Confirmation Modal */}
+      {deleteConfirmAssignment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div
+            className="absolute inset-0"
+            onClick={() => setDeleteConfirmAssignment(null)}
+          />
+          <div className="relative bg-[#F8F8F8] rounded-2xl w-full max-w-md mx-4 p-8">
+            <h3 className="text-[22px] font-bold text-[#222222] mb-4 font-['Montserrat']">
+              Удалить задание?
+            </h3>
+            <p className="text-[14px] text-[#666666] mb-6 font-['Montserrat']">
+              Вы уверены, что хотите удалить задание "{deleteConfirmAssignment.title}"? Все ответы студентов также будут удалены.
+            </p>
+            <div className="flex justify-end gap-4">
+              <button
+                onClick={() => setDeleteConfirmAssignment(null)}
+                className="px-6 py-3 bg-white rounded-lg text-[14px] font-medium text-[#222222] hover:bg-gray-100 transition-colors font-['Montserrat']"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={handleDeleteAssignment}
+                disabled={deletingAssignment}
+                className="px-6 py-3 bg-red-500 text-white rounded-lg text-[14px] font-medium hover:bg-red-600 transition-colors disabled:opacity-50 font-['Montserrat']"
+              >
+                {deletingAssignment ? 'Удаление...' : 'Удалить'}
               </button>
             </div>
           </div>

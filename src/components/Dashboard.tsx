@@ -37,9 +37,6 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
   // Check if user is a teacher
   const isTeacher = user.role === 'teacher'
 
-  // Get user initials for avatar
-  const initials = `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase()
-
   // Fetch user's enrolled courses with server-side pagination
   const fetchCourses = useCallback(async () => {
     const token = localStorage.getItem('access_token')
