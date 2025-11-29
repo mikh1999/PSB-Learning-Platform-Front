@@ -165,9 +165,47 @@ export async function reorderLessons(
   return response.json()
 }
 
-// Get video streaming URL
-export function getVideoStreamUrl(courseId: number, lessonId: number): string {
-  return `${API_BASE}/files/stream/lessons/${courseId}/${lessonId}`
+// Get video streaming URL with authentication token
+export function getVideoStreamUrl(courseId: number, lessonId: number, token?: string): string {
+  const baseUrl = `${API_BASE}/files/stream/lessons/${courseId}/${lessonId}`
+  if (token) {
+    return `${baseUrl}?token=${encodeURIComponent(token)}`
+  }
+  return baseUrl
+}
+
+// Get file download URL with authentication token
+export function getFileDownloadUrl(courseId: number, lessonId: number, token?: string): string {
+  const baseUrl = `${API_BASE}/files/lessons/${courseId}/${lessonId}`
+  if (token) {
+    return `${baseUrl}?token=${encodeURIComponent(token)}`
+  }
+  return baseUrl
+}
+
+// Helper to detect file type from file_url/content path
+export function getFileType(filePath: string | null): 'video' | 'pdf' | 'image' | 'document' | 'unknown' {
+  if (!filePath) return 'unknown'
+
+  const ext = filePath.split('.').pop()?.toLowerCase() || ''
+
+  const videoExts = ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv']
+  const pdfExts = ['pdf']
+  const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp']
+  const docExts = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'rtf']
+
+  if (videoExts.includes(ext)) return 'video'
+  if (pdfExts.includes(ext)) return 'pdf'
+  if (imageExts.includes(ext)) return 'image'
+  if (docExts.includes(ext)) return 'document'
+
+  return 'unknown'
+}
+
+// Get file extension from path
+export function getFileExtension(filePath: string | null): string {
+  if (!filePath) return ''
+  return filePath.split('.').pop()?.toUpperCase() || ''
 }
 
 // Upload file to lesson

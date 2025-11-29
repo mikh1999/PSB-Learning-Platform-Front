@@ -168,75 +168,84 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
           <div className="flex items-center gap-5 lg:gap-6 2xl:gap-8">
             {/* Avatar - Figma: 194x194 circle with image and camera icon */}
             <div className="relative shrink-0">
-              <div className="w-20 h-20 lg:w-28 lg:h-28 xl:w-36 xl:h-36 2xl:w-[194px] 2xl:h-[194px] rounded-full overflow-hidden bg-[#EA5616] flex items-center justify-center">
-                {user.avatar_url ? (
-                  <img
-                    src={user.avatar_url}
-                    alt={`${user.first_name} ${user.last_name}`}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-white text-2xl lg:text-4xl xl:text-5xl 2xl:text-6xl font-bold">
-                    {initials}
-                  </span>
-                )}
+              <div className="w-20 h-20 lg:w-28 lg:h-28 xl:w-36 xl:h-36 2xl:w-[194px] 2xl:h-[194px] rounded-full overflow-hidden">
+                <img
+                  src={user.avatar_url || '/default-avatar.png'}
+                  alt={`${user.first_name} ${user.last_name}`}
+                  className="w-full h-full object-cover"
+                />
               </div>
-              {/* Camera icon for avatar edit - Figma style */}
+              {/* Camera icon - Figma: 53x53, dark bg #222222, white icon */}
               <button
                 onClick={() => window.open('/profile/edit', '_blank')}
-                className="absolute bottom-0 left-0 w-6 h-6 lg:w-8 lg:h-8 2xl:w-10 2xl:h-10 bg-[#F8F8F8] rounded-full flex items-center justify-center shadow-md hover:bg-gray-100 transition-colors"
+                className="absolute bottom-0 right-0 w-8 h-8 lg:w-10 lg:h-10 xl:w-12 xl:h-12 2xl:w-[53px] 2xl:h-[53px] bg-[#222222] hover:bg-[#333333] rounded-full flex items-center justify-center shadow-lg transition-colors"
                 title="Изменить фото"
               >
-                <svg className="w-3 h-3 lg:w-4 lg:h-4 2xl:w-5 2xl:h-5 text-[#222222]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-4 h-4 lg:w-5 lg:h-5 xl:w-6 xl:h-6 2xl:w-7 2xl:h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </button>
             </div>
-            <div>
-              {/* Name with edit icon - Figma: 31px Bold */}
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl lg:text-2xl xl:text-[28px] 2xl:text-[31px] font-bold text-[#222222] leading-tight">
+            <div className="flex flex-col justify-center">
+              {/* Name with edit icon - aligned on same baseline */}
+              <div className="flex items-center gap-3 lg:gap-4">
+                <span className="text-xl lg:text-2xl xl:text-[28px] 2xl:text-[31px] font-bold text-[#222222]">
                   {user.first_name} {user.last_name}
-                </h2>
+                </span>
                 <button
                   onClick={() => window.open('/profile/edit', '_blank')}
                   className="hover:opacity-70 transition-opacity"
                   title="Редактировать профиль"
                 >
-                  <img src="/pencil-icon.png" alt="Редактировать" className="w-4 h-4 lg:w-5 lg:h-5" />
+                  <img src="/pencil-icon.png" alt="Редактировать" className="w-6 h-6 lg:w-7 lg:h-7 xl:w-8 xl:h-8 2xl:w-9 2xl:h-9" />
                 </button>
               </div>
               {/* Role/Position - Figma: 21px Medium */}
               <p className="text-sm lg:text-base xl:text-lg 2xl:text-[21px] font-medium text-[#222222] mt-1">
                 {user.role === 'teacher' ? 'Преподаватель' : 'Студент'}
               </p>
+              {/* Check Assignments Button - under name and role, only for teachers */}
+              {isTeacher && (
+                <div className="relative inline-block mt-3 lg:mt-4">
+                  <button
+                    onClick={() => window.open('/assignments', '_blank')}
+                    className="h-[40px] lg:h-[46px] xl:h-[50px] 2xl:h-[56px] px-5 lg:px-6 xl:px-8 2xl:px-10 bg-[#2C2D84] hover:bg-[#3d3e95] rounded-lg text-white text-[14px] lg:text-[16px] xl:text-[18px] 2xl:text-[20px] font-bold transition-colors font-['Montserrat']"
+                  >
+                    Проверить задания
+                  </button>
+                  {/* Notification badge */}
+                  <span className="absolute -top-1.5 -right-1.5 lg:-top-2 lg:-right-2 w-6 h-6 lg:w-7 lg:h-7 2xl:w-8 2xl:h-8 bg-[#EA5616] rounded-full flex items-center justify-center text-white text-[14px] lg:text-[16px] xl:text-[18px] 2xl:text-[20px] font-semibold font-['Montserrat']">
+                    2
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Achievements Section - Figma: Title 31px Bold, Circles 147x147 overlapping, Icons 58px Bold */}
-          <div className="flex items-center gap-6 lg:gap-8 2xl:gap-10">
-            {/* Achievement Circles - Figma: 147x147 each, overlapping ~70px */}
+          {/* Achievements Section */}
+          <div className="flex items-center gap-4 lg:gap-6 2xl:gap-8">
+            {/* Achievement Circles - smaller */}
             <div className="flex">
               {achievements.map((achievement, index) => (
                 <div
                   key={achievement.id}
-                  className="w-16 h-16 lg:w-20 lg:h-20 xl:w-28 xl:h-28 2xl:w-[147px] 2xl:h-[147px] rounded-full flex items-center justify-center border-4 border-[#F8F8F8]"
+                  className="w-12 h-12 lg:w-14 lg:h-14 xl:w-18 xl:h-18 2xl:w-[90px] 2xl:h-[90px] rounded-full flex items-center justify-center"
                   style={{
                     backgroundColor: achievement.color,
-                    marginLeft: index === 0 ? 0 : '-24px',
+                    marginLeft: index === 0 ? 0 : '-28px',
                     zIndex: achievements.length - index
                   }}
                 >
-                  {/* Icon - Figma: 58px Bold white */}
-                  <span className="text-white text-lg lg:text-2xl xl:text-4xl 2xl:text-[58px] font-bold">
+                  {/* Icon */}
+                  <span className="text-white text-sm lg:text-lg xl:text-2xl 2xl:text-[36px] font-bold">
                     {achievement.icon}
                   </span>
                 </div>
               ))}
             </div>
-            {/* Title - Figma: "Ваши достижения" 31px Bold, 2 lines */}
-            <h3 className="text-lg lg:text-xl xl:text-2xl 2xl:text-[31px] font-bold text-[#222222] leading-tight">
+            {/* Title */}
+            <h3 className="text-base lg:text-lg xl:text-xl 2xl:text-[24px] font-bold text-[#222222] leading-tight">
               Ваши<br />достижения
             </h3>
           </div>
@@ -245,19 +254,19 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
         {/* User Courses Section */}
         <section>
           {/* Section Header - Figma: 46px Bold */}
-          <div className="flex items-center gap-3 lg:gap-4 mb-8 lg:mb-10">
-            <h2 className="text-2xl lg:text-3xl xl:text-4xl 2xl:text-[46px] font-bold text-[#222222]">
+          <div className="flex items-baseline gap-3 lg:gap-4 mb-8 lg:mb-10">
+            <span className="text-2xl lg:text-3xl xl:text-4xl 2xl:text-[46px] font-bold text-[#222222] leading-none">
               Ваши курсы
-            </h2>
-            {/* Add Button - Figma: 27px SemiBold with circle icon, 30% opacity */}
+            </span>
+            {/* Add Button - aligned on same baseline */}
             {isTeacher && (
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="flex items-center gap-1.5 text-sm lg:text-base xl:text-lg 2xl:text-[27px] font-semibold text-[#222222] opacity-30 hover:opacity-60 transition-opacity"
+                className="flex items-baseline gap-1.5 text-sm lg:text-base xl:text-lg 2xl:text-[27px] font-semibold text-[#222222] opacity-30 hover:opacity-60 transition-opacity leading-none"
               >
                 Добавить
-                <span className="w-5 h-5 lg:w-6 lg:h-6 2xl:w-7 2xl:h-7 rounded-full border-2 border-current flex items-center justify-center">
-                  <span className="text-xs lg:text-sm 2xl:text-base">+</span>
+                <span className="w-5 h-5 lg:w-6 lg:h-6 2xl:w-7 2xl:h-7 rounded-full border-2 border-current inline-flex items-center justify-center translate-y-[-2px]">
+                  <span className="text-xs lg:text-sm 2xl:text-base leading-none">+</span>
                 </span>
               </button>
             )}
@@ -351,76 +360,75 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
 
           {/* Pagination and per-page selector */}
           {totalCourses > 0 && (
-            <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mt-8 lg:mt-12">
-              {/* Pagination - Figma style: « ‹ 1 2 3 ... › » */}
-              <div className="flex items-center gap-1 lg:gap-2 text-[#222222]">
-                {/* First page */}
-                <button
-                  onClick={() => setCurrentPage(1)}
-                  disabled={currentPage === 1}
-                  className="w-8 h-8 lg:w-10 lg:h-10 flex items-center justify-center text-lg lg:text-xl font-medium disabled:opacity-30 hover:opacity-70 transition-opacity"
-                >
-                  «
-                </button>
-
-                {/* Previous page */}
+            <div className="relative flex items-center justify-center mt-10 lg:mt-14 2xl:mt-16">
+              {/* Pagination - centered */}
+              <div className="flex items-center gap-2 lg:gap-3 text-[#222222]">
+                {/* Previous page arrow */}
                 <button
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="w-8 h-8 lg:w-10 lg:h-10 flex items-center justify-center text-lg lg:text-xl font-medium disabled:opacity-30 hover:opacity-70 transition-opacity"
+                  className="w-10 h-10 lg:w-12 lg:h-12 2xl:w-14 2xl:h-14 flex items-center justify-center rounded-lg bg-white disabled:opacity-30 hover:bg-gray-100 transition-colors"
                 >
-                  ‹
+                  <svg className="w-5 h-5 lg:w-6 lg:h-6 2xl:w-7 2xl:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                  </svg>
                 </button>
 
-                {/* Page numbers - show only actual pages */}
+                {/* Page numbers */}
                 <div className="flex items-center gap-1 lg:gap-2">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => i + 1).map(page => (
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let page: number
+                    if (totalPages <= 5) {
+                      page = i + 1
+                    } else if (currentPage <= 3) {
+                      page = i + 1
+                    } else if (currentPage >= totalPages - 2) {
+                      page = totalPages - 4 + i
+                    } else {
+                      page = currentPage - 2 + i
+                    }
+                    return page
+                  }).map(page => (
                     <button
                       key={page}
                       onClick={() => setCurrentPage(page)}
-                      className={`w-8 h-8 lg:w-10 lg:h-10 flex items-center justify-center text-sm lg:text-base font-medium transition-opacity ${
-                        page === currentPage ? 'font-bold' : 'hover:opacity-70'
+                      className={`w-10 h-10 lg:w-12 lg:h-12 2xl:w-14 2xl:h-14 flex items-center justify-center rounded-lg text-[16px] lg:text-[18px] 2xl:text-[20px] font-medium transition-colors ${
+                        page === currentPage
+                          ? 'bg-[#222222] text-white'
+                          : 'bg-white text-[#222222] hover:bg-gray-100'
                       }`}
                     >
                       {page}
                     </button>
                   ))}
-                  {totalPages > 5 && (
-                    <span className="px-1 text-sm lg:text-base">...</span>
-                  )}
                 </div>
 
-                {/* Next page */}
+                {/* Next page arrow */}
                 <button
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages || totalPages === 0}
-                  className="w-8 h-8 lg:w-10 lg:h-10 flex items-center justify-center text-lg lg:text-xl font-medium disabled:opacity-30 hover:opacity-70 transition-opacity"
+                  className="w-10 h-10 lg:w-12 lg:h-12 2xl:w-14 2xl:h-14 flex items-center justify-center rounded-lg bg-white disabled:opacity-30 hover:bg-gray-100 transition-colors"
                 >
-                  ›
-                </button>
-
-                {/* Last page */}
-                <button
-                  onClick={() => setCurrentPage(totalPages)}
-                  disabled={currentPage === totalPages || totalPages === 0}
-                  className="w-8 h-8 lg:w-10 lg:h-10 flex items-center justify-center text-lg lg:text-xl font-medium disabled:opacity-30 hover:opacity-70 transition-opacity"
-                >
-                  »
+                  <svg className="w-5 h-5 lg:w-6 lg:h-6 2xl:w-7 2xl:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
                 </button>
               </div>
 
-              {/* Per-page selector */}
-              <div className="flex items-center gap-2 text-sm lg:text-base text-[#222222]">
-                <span className="opacity-60">Показывать:</span>
-                <div className="flex items-center gap-1">
+              {/* Per-page selector - absolute right */}
+              <div className="absolute right-0 flex items-center gap-3 text-[#222222]">
+                <span className="text-[14px] lg:text-[16px] 2xl:text-[18px] font-medium text-[#B4B4B4]">
+                  Показывать:
+                </span>
+                <div className="flex items-center gap-2">
                   {PER_PAGE_OPTIONS.map(option => (
                     <button
                       key={option}
                       onClick={() => handlePerPageChange(option)}
-                      className={`px-2 py-1 rounded transition-opacity ${
+                      className={`w-10 h-10 lg:w-12 lg:h-12 2xl:w-14 2xl:h-14 flex items-center justify-center rounded-lg text-[14px] lg:text-[16px] 2xl:text-[18px] font-medium transition-colors ${
                         option === perPage
-                          ? 'font-bold bg-[#222222] text-white'
-                          : 'hover:opacity-70'
+                          ? 'bg-[#222222] text-white'
+                          : 'bg-white text-[#222222] hover:bg-gray-100'
                       }`}
                     >
                       {option}
@@ -436,12 +444,12 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
       {/* Footer - Same as main page */}
       <footer className="bg-[#222222] px-[28px] lg:px-[42px] 2xl:px-[56px] py-[55px] lg:py-[82px] 2xl:py-[110px] mt-12">
         <div className="flex flex-col lg:flex-row items-start justify-between gap-[40px] lg:gap-[100px]">
-          {/* Logo */}
+          {/* Logo - Figma: white-orange logo */}
           <div className="shrink-0">
             <img
-              src="/logo.png"
+              src="/psb-logo-white.png"
               alt="ПСБ"
-              className="h-[120px] lg:h-[200px] 2xl:h-[311px] w-auto brightness-0 invert"
+              className="h-[80px] lg:h-[140px] 2xl:h-[200px] w-auto"
             />
           </div>
 

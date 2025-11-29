@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { Modal } from './Modal'
+import { useState, useEffect, useCallback } from 'react'
 import { createCourse, type Course } from '../api/courses'
 
 interface CreateCourseModalProps {
@@ -13,6 +12,21 @@ export function CreateCourseModal({ isOpen, onClose, onSuccess }: CreateCourseMo
   const [description, setDescription] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  const handleEscape = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') handleClose()
+  }, [])
+
+  useEffect(() => {
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape)
+      document.body.style.overflow = 'hidden'
+    }
+    return () => {
+      document.removeEventListener('keydown', handleEscape)
+      document.body.style.overflow = 'unset'
+    }
+  }, [isOpen, handleEscape])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -48,50 +62,89 @@ export function CreateCourseModal({ isOpen, onClose, onSuccess }: CreateCourseMo
     onClose()
   }
 
+  if (!isOpen) return null
+
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Создать курс">
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {error && (
-          <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm">
-            {error}
-          </div>
-        )}
-
-        <div>
-          <label className="block text-sm font-medium text-[#222222] mb-2">
-            Название курса
-          </label>
-          <input
-            type="text"
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-            required
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#EA5616] focus:border-[#EA5616] outline-none transition-shadow text-[#222222]"
-            placeholder="Введите название курса"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-[#222222] mb-2">
-            Описание (необязательно)
-          </label>
-          <textarea
-            value={description}
-            onChange={e => setDescription(e.target.value)}
-            rows={4}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#EA5616] focus:border-[#EA5616] outline-none transition-shadow text-[#222222] resize-none"
-            placeholder="Опишите содержание курса"
-          />
-        </div>
-
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      onClick={handleClose}
+    >
+      <div
+        className="bg-[#F8F8F8] rounded-2xl shadow-2xl w-full max-w-[586px] mx-4 overflow-hidden relative"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Close button */}
         <button
-          type="submit"
-          disabled={loading || !title.trim()}
-          className="w-full h-[56px] bg-[#EA5616] hover:bg-[#d14a10] disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors"
+          onClick={handleClose}
+          className="absolute top-5 right-5 text-[#222222] hover:text-gray-600 transition-colors z-10"
         >
-          {loading ? 'Создание...' : 'Создать курс'}
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
         </button>
-      </form>
-    </Modal>
+
+        <div className="p-10">
+          {/* Title - Figma: 25px Bold */}
+          <h2 className="text-[22px] md:text-[25px] font-bold text-[#222222] mb-8 font-['Montserrat']">
+            Создание курса
+          </h2>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
+
+            {/* Course title field */}
+            <div>
+              <label className="block text-[16px] font-medium text-[#222222] mb-3 font-['Montserrat']">
+                Название курса <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                required
+                className="w-full px-4 py-3 bg-white rounded-lg text-[14px] text-[#222222] placeholder-[#757575] outline-none focus:ring-2 focus:ring-[#5B5FC7] transition-shadow font-['Montserrat']"
+                placeholder="Введите название"
+              />
+            </div>
+
+            {/* Description field */}
+            <div>
+              <label className="block text-[16px] font-medium text-[#222222] mb-3 font-['Montserrat']">
+                Описание курса
+              </label>
+              <textarea
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                rows={4}
+                className="w-full px-4 py-3 bg-white rounded-lg text-[14px] text-[#222222] placeholder-[#757575] outline-none focus:ring-2 focus:ring-[#5B5FC7] transition-shadow font-['Montserrat'] resize-none"
+                placeholder="Опишите содержание курса"
+              />
+            </div>
+
+            {/* Buttons - Figma style */}
+            <div className="flex items-center justify-end gap-4 pt-2">
+              <button
+                type="button"
+                onClick={handleClose}
+                className="px-6 py-3 bg-white hover:bg-gray-100 text-[#222222] text-[14px] font-medium rounded-lg transition-colors font-['Montserrat']"
+              >
+                Отмена
+              </button>
+              <button
+                type="submit"
+                disabled={loading || !title.trim()}
+                className="px-8 py-3 bg-[#222222] hover:bg-[#333333] disabled:bg-gray-400 text-white text-[14px] font-medium rounded-lg transition-colors font-['Montserrat']"
+              >
+                {loading ? 'Создание...' : 'Далее'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   )
 }

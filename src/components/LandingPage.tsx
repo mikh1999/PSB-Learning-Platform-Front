@@ -9,6 +9,9 @@ type ModalType = 'login' | 'register' | null
 // Course thumbnail images from Figma
 const COURSE_IMAGES = ['/course-1.png', '/course-2.png', '/course-3.png']
 
+// Course durations from Figma design
+const COURSE_DURATIONS = ['1 месяц', '3 месяца', '6 месяцев']
+
 interface LandingPageProps {
   onAuthSuccess: (auth: AuthResponse) => void
 }
@@ -127,10 +130,10 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
             courses.map((course, index) => (
               <div
                 key={course.id}
-                className="rounded-2xl overflow-hidden hover:shadow-xl transition-shadow cursor-pointer"
+                className="rounded-2xl overflow-hidden hover:shadow-xl transition-shadow cursor-pointer flex flex-col h-full"
               >
                 {/* Card Image - Figma: 589x322, use index to ensure unique images */}
-                <div className="h-[180px] lg:h-[250px] 2xl:h-[322px] overflow-hidden rounded-t-2xl">
+                <div className="h-[180px] lg:h-[250px] 2xl:h-[322px] overflow-hidden rounded-t-2xl flex-shrink-0">
                   <img
                     src={COURSE_IMAGES[index % COURSE_IMAGES.length]}
                     alt={course.title}
@@ -138,10 +141,10 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
                   />
                 </div>
 
-                {/* Card Content - Figma: bg #FFFFFF, gap 57px between sections */}
-                <div className="bg-white p-[16px] lg:p-[24px] 2xl:p-[32px]">
+                {/* Card Content - Figma: bg #FFFFFF, flex to fill remaining space */}
+                <div className="bg-white p-[16px] lg:p-[24px] 2xl:p-[32px] flex flex-col flex-grow">
                   {/* Tags - Figma: 12px Medium, bg #2C2D84, radius 8px, gap 10px */}
-                  <div className="flex flex-wrap gap-[6px] lg:gap-[8px] 2xl:gap-[10px] mb-[24px] lg:mb-[40px] 2xl:mb-[57px]">
+                  <div className="flex flex-wrap gap-[6px] lg:gap-[8px] 2xl:gap-[10px] mb-[16px] lg:mb-[24px] 2xl:mb-[32px]">
                     <span className="px-[10px] lg:px-[14px] 2xl:px-[18px] py-[4px] lg:py-[6px] 2xl:py-[8px] bg-[#2C2D84] text-white text-[10px] lg:text-[11px] 2xl:text-[12px] font-medium rounded-lg">
                       #нейросети
                     </span>
@@ -150,15 +153,27 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
                     </span>
                   </div>
 
-                  {/* Course Title - Figma: 32px Bold */}
-                  <h3 className="text-[18px] lg:text-[24px] 2xl:text-[32px] font-bold text-[#222222] leading-[1.3] mb-[24px] lg:mb-[40px] 2xl:mb-[57px]">
+                  {/* Course Title - Figma: 32px Bold, flex-grow to push duration down */}
+                  <h3 className="text-[18px] lg:text-[24px] 2xl:text-[32px] font-bold text-[#222222] leading-[1.3] flex-grow">
                     {course.title}
                   </h3>
 
-                  {/* Duration - Figma: 54px Bold */}
-                  <p className="text-[28px] lg:text-[40px] 2xl:text-[54px] font-bold text-[#222222]">
-                    1 месяц
-                  </p>
+                  {/* Duration with Arrow - Figma: 54px Bold + simple arrow aligned right */}
+                  <div className="flex items-center justify-between mt-[16px] lg:mt-[24px] 2xl:mt-[32px]">
+                    <p className="text-[28px] lg:text-[40px] 2xl:text-[54px] font-bold text-[#222222]">
+                      {COURSE_DURATIONS[index % COURSE_DURATIONS.length]}
+                    </p>
+                    {/* Arrow - Figma: simple arrow aligned to right */}
+                    <svg
+                      className="w-[24px] h-[24px] lg:w-[32px] lg:h-[32px] 2xl:w-[40px] 2xl:h-[40px] text-[#222222]"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
+                  </div>
                 </div>
               </div>
             ))
@@ -170,19 +185,19 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
         </div>
       </section>
 
-      {/* About Section - Figma: title 60px, text 38px/400 */}
+      {/* About Section - Figma: title 60px, two columns of text */}
       <section id="about" className="px-[28px] lg:px-[42px] 2xl:px-[56px] py-[50px] lg:py-[75px] 2xl:py-[100px]">
         {/* Section Title - Figma: 60px Bold */}
         <h2 className="text-[32px] lg:text-[46px] 2xl:text-[60px] font-bold text-[#222222] mb-[28px] lg:mb-[42px] 2xl:mb-[56px]">
           О нас
         </h2>
 
-        {/* About Text - Figma: 38px Regular */}
-        <div className="space-y-[24px] lg:space-y-[36px] 2xl:space-y-[48px]">
-          <p className="text-[16px] lg:text-[26px] 2xl:text-[38px] font-normal text-[#222222] leading-[1.5]">
+        {/* About Text - Figma: two columns, left higher, right lower */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-[24px] lg:gap-[40px] 2xl:gap-[60px]">
+          <p className="text-[14px] lg:text-[18px] 2xl:text-[24px] font-normal text-[#222222] leading-[1.6]">
             ПАО «Промсвязьбанк», являясь одной из ведущих финансовых организаций России, видит своей стратегической задачей развитие человеческого потенциала. Мы уверены, что успех компании напрямую зависит от профессионализма, компетенций и вовлеченности наших сотрудников.
           </p>
-          <p className="text-[16px] lg:text-[26px] 2xl:text-[38px] font-normal text-[#222222] leading-[1.5]">
+          <p className="text-[14px] lg:text-[18px] 2xl:text-[24px] font-normal text-[#222222] leading-[1.6] lg:mt-[80px] 2xl:mt-[120px]">
             Корпоративные курсы ПСБ — это целостная экосистема непрерывного обучения, разработанная для формирования кадрового резерва, адаптации сотрудников к быстро меняющимся рыночным условиям и внедрения единых стандартов качества обслуживания.
           </p>
         </div>
@@ -191,12 +206,12 @@ export function LandingPage({ onAuthSuccess }: LandingPageProps) {
       {/* Footer - Figma: bg #222222, padding 110px/56px, text 32px/500 #F8F8F8 */}
       <footer className="bg-[#222222] px-[28px] lg:px-[42px] 2xl:px-[56px] py-[55px] lg:py-[82px] 2xl:py-[110px]">
         <div className="flex flex-col lg:flex-row items-start justify-between gap-[40px] lg:gap-[100px]">
-          {/* Logo */}
+          {/* Logo - Figma: white-orange logo */}
           <div className="shrink-0">
             <img
-              src="/logo.png"
+              src="/psb-logo-white.png"
               alt="ПСБ"
-              className="h-[120px] lg:h-[200px] 2xl:h-[311px] w-auto brightness-0 invert"
+              className="h-[80px] lg:h-[140px] 2xl:h-[200px] w-auto"
             />
           </div>
 
