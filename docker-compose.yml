@@ -1,0 +1,9 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: psb-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
