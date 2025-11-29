@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
-import { getCourse, type Course } from '../api/courses'
+import { useParams, useNavigate } from 'react-router-dom'
+import { getCourse, updateCourse, deleteCourse, getCourseStudents, type Course, type EnrolledStudent } from '../api/courses'
 import { getCourseLessons, deleteLesson, getVideoStreamUrl, getFileDownloadUrl, getFileType, getFileExtension, type Lesson } from '../api/lessons'
 import { getLessonAssignments, deleteAssignment, type Assignment } from '../api/assignments'
 import { LessonModal } from '../components/LessonModal'
@@ -13,6 +13,7 @@ interface LessonWithAssignments extends Lesson {
 
 export function CoursePage() {
   const { courseId } = useParams<{ courseId: string }>()
+  const navigate = useNavigate()
   const [course, setCourse] = useState<Course | null>(null)
   const [lessons, setLessons] = useState<LessonWithAssignments[]>([])
   const [selectedLesson, setSelectedLesson] = useState<LessonWithAssignments | null>(null)
@@ -31,6 +32,19 @@ export function CoursePage() {
   const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null)
   const [deleteConfirmAssignment, setDeleteConfirmAssignment] = useState<Assignment | null>(null)
   const [deletingAssignment, setDeletingAssignment] = useState(false)
+
+  // Course status
+  const [togglingStatus, setTogglingStatus] = useState(false)
+
+  // Delete course
+  const [showDeleteCourseModal, setShowDeleteCourseModal] = useState(false)
+  const [deletingCourse, setDeletingCourse] = useState(false)
+
+  // Students list
+  const [showStudentsModal, setShowStudentsModal] = useState(false)
+  const [students, setStudents] = useState<EnrolledStudent[]>([])
+  const [loadingStudents, setLoadingStudents] = useState(false)
+  const [totalStudents, setTotalStudents] = useState(0)
 
   const fetchLessons = async (token: string, cId: number) => {
     const lessonsData = await getCourseLessons(token, cId)
@@ -214,6 +228,69 @@ export function CoursePage() {
     }
   }
 
+  // Toggle course status (publish/unpublish)
+  const handleToggleCourseStatus = async () => {
+    if (!course || !courseId) return
+
+    const token = localStorage.getItem('access_token')
+    if (!token) return
+
+    const newStatus = course.status === 'published' ? 'draft' : 'published'
+
+    setTogglingStatus(true)
+    try {
+      const updated = await updateCourse(token, parseInt(courseId), { status: newStatus })
+      setCourse(updated)
+    } catch (err) {
+      console.error('Error toggling course status:', err)
+      setError(err instanceof Error ? err.message : 'Ошибка изменения статуса')
+    } finally {
+      setTogglingStatus(false)
+    }
+  }
+
+  // Delete course
+  const handleDeleteCourse = async () => {
+    if (!courseId) return
+
+    const token = localStorage.getItem('access_token')
+    if (!token) return
+
+    setDeletingCourse(true)
+    try {
+      await deleteCourse(token, parseInt(courseId))
+      navigate('/')
+    } catch (err) {
+      console.error('Error deleting course:', err)
+      setError(err instanceof Error ? err.message : 'Ошибка удаления курса')
+      setShowDeleteCourseModal(false)
+    } finally {
+      setDeletingCourse(false)
+    }
+  }
+
+  // Load students list
+  const loadStudents = async () => {
+    if (!courseId) return
+
+    const token = localStorage.getItem('access_token')
+    if (!token) return
+
+    setShowStudentsModal(true)
+    setLoadingStudents(true)
+    try {
+      const data = await getCourseStudents(token, parseInt(courseId))
+      setStudents(data.items)
+      setTotalStudents(data.total)
+    } catch (err) {
+      console.error('Error loading students:', err)
+      setStudents([])
+      setTotalStudents(0)
+    } finally {
+      setLoadingStudents(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F8F8F8] flex items-center justify-center">
@@ -273,8 +350,8 @@ export function CoursePage() {
 
       {/* Main Content */}
       <main className="px-[28px] lg:px-[42px] 2xl:px-[56px] pb-[50px]">
-        {/* Back link */}
-        <div className="mb-6">
+        {/* Back link + Course status controls */}
+        <div className="mb-6 flex items-center justify-between">
           <a
             href="/"
             className="inline-flex items-center gap-2 text-[#EA5616] text-[16px] font-medium hover:underline"
@@ -284,6 +361,75 @@ export function CoursePage() {
             </svg>
             Назад к курсам
           </a>
+
+          {/* Course status badge and toggle button */}
+          {isTeacher && (
+            <div className="flex items-center gap-3">
+              {/* Students button */}
+              <button
+                onClick={loadStudents}
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-[14px] font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                Студенты
+              </button>
+
+              {/* Status badge */}
+              <span className={`px-3 py-1.5 rounded-full text-[14px] font-medium ${
+                course.status === 'published'
+                  ? 'bg-green-100 text-green-700'
+                  : 'bg-yellow-100 text-yellow-700'
+              }`}>
+                {course.status === 'published' ? 'Опубликован' : 'Черновик'}
+              </span>
+
+              {/* Toggle button */}
+              <button
+                onClick={handleToggleCourseStatus}
+                disabled={togglingStatus}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[14px] font-medium transition-colors disabled:opacity-50 ${
+                  course.status === 'published'
+                    ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                    : 'bg-green-500 hover:bg-green-600 text-white'
+                }`}
+              >
+                {togglingStatus ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    {course.status === 'published' ? 'Скрытие...' : 'Публикация...'}
+                  </>
+                ) : course.status === 'published' ? (
+                  <>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                    </svg>
+                    Скрыть курс
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    Опубликовать
+                  </>
+                )}
+              </button>
+
+              {/* Delete course button */}
+              <button
+                onClick={() => setShowDeleteCourseModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg text-[14px] font-medium text-white transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Удалить
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Two-column layout - Figma style */}
@@ -864,6 +1010,106 @@ export function CoursePage() {
               >
                 {deletingAssignment ? 'Удаление...' : 'Удалить'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Course Confirmation Modal */}
+      {showDeleteCourseModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div
+            className="absolute inset-0"
+            onClick={() => setShowDeleteCourseModal(false)}
+          />
+          <div className="relative bg-[#F8F8F8] rounded-2xl w-full max-w-md mx-4 p-8">
+            <h3 className="text-[22px] font-bold text-[#222222] mb-4 font-['Montserrat']">
+              Удалить курс?
+            </h3>
+            <p className="text-[14px] text-[#666666] mb-6 font-['Montserrat']">
+              Вы уверены, что хотите удалить курс "{course?.title}"? Все уроки, задания и ответы студентов будут удалены безвозвратно.
+            </p>
+            <div className="flex justify-end gap-4">
+              <button
+                onClick={() => setShowDeleteCourseModal(false)}
+                className="px-6 py-3 bg-white rounded-lg text-[14px] font-medium text-[#222222] hover:bg-gray-100 transition-colors font-['Montserrat']"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={handleDeleteCourse}
+                disabled={deletingCourse}
+                className="px-6 py-3 bg-red-500 text-white rounded-lg text-[14px] font-medium hover:bg-red-600 transition-colors disabled:opacity-50 font-['Montserrat']"
+              >
+                {deletingCourse ? 'Удаление...' : 'Удалить курс'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Students List Modal */}
+      {showStudentsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div
+            className="absolute inset-0"
+            onClick={() => setShowStudentsModal(false)}
+          />
+          <div className="relative bg-white rounded-2xl w-full max-w-lg mx-4 p-6 max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-[#222222] font-['Montserrat']">
+                Студенты курса ({totalStudents})
+              </h2>
+              <button
+                onClick={() => setShowStudentsModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+              {loadingStudents ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-10 w-10 border-4 border-[#2C2D84] border-t-transparent"></div>
+                </div>
+              ) : students.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                  <p>Студенты ещё не записались на курс</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {students.map((student) => (
+                    <div key={student.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                      <div className="w-12 h-12 bg-[#EA5616] rounded-full flex items-center justify-center text-white font-semibold text-lg">
+                        {student.student_first_name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-[#222222]">
+                          {student.student_first_name} {student.student_last_name}
+                        </p>
+                        <p className="text-sm text-gray-500">{student.student_email}</p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-medium text-[#2C2D84]">
+                          {student.progress}% пройдено
+                        </div>
+                        <div className="w-24 h-2 bg-gray-200 rounded-full mt-1">
+                          <div
+                            className="h-full bg-[#2C2D84] rounded-full transition-all"
+                            style={{ width: `${student.progress}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

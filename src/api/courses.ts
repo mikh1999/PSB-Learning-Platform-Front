@@ -130,3 +130,81 @@ export async function createCourse(token: string, course: CourseCreate): Promise
 
   return response.json()
 }
+
+// Auth required: Update course (teachers only)
+export interface CourseUpdate {
+  title?: string
+  description?: string
+  status?: 'draft' | 'published'
+}
+
+export async function updateCourse(token: string, courseId: number, data: CourseUpdate): Promise<Course> {
+  const response = await fetch(`${API_BASE}/courses/${courseId}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Ошибка обновления курса' }))
+    throw new Error(error.detail || 'Ошибка обновления курса')
+  }
+
+  return response.json()
+}
+
+// Auth required: Delete course (teachers only)
+export async function deleteCourse(token: string, courseId: number): Promise<void> {
+  const response = await fetch(`${API_BASE}/courses/${courseId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Ошибка удаления курса' }))
+    throw new Error(error.detail || 'Ошибка удаления курса')
+  }
+}
+
+// Student enrolled in a course (matches backend EnrollmentWithStudent schema)
+export interface EnrolledStudent {
+  id: number
+  student_id: number
+  course_id: number
+  progress: number
+  enrolled_at: string
+  student_email: string
+  student_first_name: string
+  student_last_name: string
+}
+
+// Auth required: Get students enrolled in a course (teachers only)
+export async function getCourseStudents(
+  token: string,
+  courseId: number,
+  params: PaginationParams = {}
+): Promise<PaginatedResponse<EnrolledStudent>> {
+  const { skip = 0, limit = 50 } = params
+  const queryParams = new URLSearchParams({
+    skip: skip.toString(),
+    limit: limit.toString()
+  })
+
+  const response = await fetch(`${API_BASE}/courses/${courseId}/students?${queryParams}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Ошибка загрузки студентов' }))
+    throw new Error(error.detail || 'Ошибка загрузки студентов')
+  }
+
+  return response.json()
+}

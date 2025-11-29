@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom'
 import { Dashboard } from './components/Dashboard'
 import { LandingPage } from './components/LandingPage'
 import { CoursePage } from './pages/CoursePage'
+import { AssignmentsPage } from './pages/AssignmentsPage'
 import { getCurrentUser, type User, type AuthResponse } from './api/auth'
 
 function App() {
@@ -57,6 +58,20 @@ function App() {
           ) : (
             <div className="min-h-screen flex items-center justify-center bg-[#F8F8F8]">
               <p className="text-xl text-gray-500">Войдите для доступа к курсу</p>
+            </div>
+          )
+        }
+      />
+
+      {/* Assignments page - for teachers to review submissions */}
+      <Route
+        path="/assignments"
+        element={
+          user ? (
+            <AssignmentsPage />
+          ) : (
+            <div className="min-h-screen flex items-center justify-center bg-[#F8F8F8]">
+              <p className="text-xl text-gray-500">Войдите для доступа</p>
             </div>
           )
         }

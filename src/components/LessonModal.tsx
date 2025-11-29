@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { createLesson, updateLesson, uploadLessonFile, type Lesson, type LessonCreate, type LessonUpdate } from '../api/lessons'
+import { createLesson, updateLesson, uploadLessonFile, deleteLesson, type Lesson, type LessonCreate, type LessonUpdate } from '../api/lessons'
 
 interface LessonModalProps {
   isOpen: boolean
@@ -13,7 +13,7 @@ export function LessonModal({ isOpen, onClose, onSuccess, courseId, lesson }: Le
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [type, setType] = useState<'text' | 'video' | 'file'>('text')
-  const [order, setOrder] = useState(1)
+  const [orderValue, setOrderValue] = useState('1')
   const [file, setFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -27,12 +27,12 @@ export function LessonModal({ isOpen, onClose, onSuccess, courseId, lesson }: Le
       setTitle(lesson.title)
       setContent(lesson.content || '')
       setType(lesson.type)
-      setOrder(lesson.order)
+      setOrderValue(String(lesson.order))
     } else {
       setTitle('')
       setContent('')
       setType('text')
-      setOrder(1)
+      setOrderValue('1')
     }
     setFile(null)
     setError(null)
@@ -53,6 +53,8 @@ export function LessonModal({ isOpen, onClose, onSuccess, courseId, lesson }: Le
 
     try {
       let savedLesson: Lesson
+
+      const order = parseInt(orderValue) || 1
 
       if (isEditing && lesson) {
         // Update existing lesson
@@ -77,9 +79,21 @@ export function LessonModal({ isOpen, onClose, onSuccess, courseId, lesson }: Le
       // Upload file if selected (for video or file type)
       if (file && (type === 'video' || type === 'file')) {
         setUploadProgress('Загрузка файла...')
-        await uploadLessonFile(token, courseId, savedLesson.id, file)
-        // Refresh lesson to get updated file_url
-        savedLesson = { ...savedLesson, file_url: 'uploaded' }
+        try {
+          await uploadLessonFile(token, courseId, savedLesson.id, file)
+          // Refresh lesson to get updated file_url
+          savedLesson = { ...savedLesson, file_url: 'uploaded' }
+        } catch (uploadErr) {
+          // If file upload failed for a new lesson, delete the lesson
+          if (!isEditing) {
+            try {
+              await deleteLesson(token, courseId, savedLesson.id)
+            } catch {
+              // Ignore delete error
+            }
+          }
+          throw uploadErr
+        }
       }
 
       onSuccess(savedLesson)
@@ -92,17 +106,27 @@ export function LessonModal({ isOpen, onClose, onSuccess, courseId, lesson }: Le
     }
   }
 
+  // Allowed extensions for lesson files (must match backend settings)
+  const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.pptx', '.mp4', '.zip', '.txt', '.md', '.webm', '.mov', '.avi', '.mkv']
+  const VIDEO_EXTENSIONS = ['.mp4', '.webm', '.mov', '.avi', '.mkv']
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
     if (selectedFile) {
-      // Check file type based on lesson type
-      if (type === 'video') {
-        const validVideoTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska']
-        if (!validVideoTypes.includes(selectedFile.type)) {
-          setError('Пожалуйста, выберите видео файл (MP4, WebM, MOV, AVI, MKV)')
-          return
-        }
+      const ext = '.' + selectedFile.name.split('.').pop()?.toLowerCase()
+
+      // Check file extension
+      if (!ALLOWED_EXTENSIONS.includes(ext)) {
+        setError(`Тип файла ${ext} не поддерживается. Разрешённые форматы: ${ALLOWED_EXTENSIONS.join(', ')}`)
+        return
       }
+
+      // For video type, check it's actually a video
+      if (type === 'video' && !VIDEO_EXTENSIONS.includes(ext)) {
+        setError(`Для видео урока выберите видео файл (${VIDEO_EXTENSIONS.join(', ')})`)
+        return
+      }
+
       setFile(selectedFile)
       setError(null)
     }
@@ -164,11 +188,18 @@ export function LessonModal({ isOpen, onClose, onSuccess, courseId, lesson }: Le
               Порядковый номер
             </label>
             <input
-              type="number"
-              value={order}
-              onChange={(e) => setOrder(parseInt(e.target.value) || 1)}
-              min={1}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={orderValue}
+              onChange={(e) => {
+                const val = e.target.value
+                if (val === '' || /^\d+$/.test(val)) {
+                  setOrderValue(val)
+                }
+              }}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#EA5616] focus:border-transparent outline-none"
+              placeholder="1"
             />
           </div>
 

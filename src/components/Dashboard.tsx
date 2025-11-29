@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { type User } from '../api/auth'
 import { getMyCourses, type Enrollment, type Course } from '../api/courses'
+import { getPendingSubmissions } from '../api/submissions'
 import { CreateCourseModal } from './CreateCourseModal'
 
 // Course thumbnail images from Figma
@@ -23,19 +25,31 @@ interface UserCourse {
   status?: 'draft' | 'published'  // for teachers
 }
 
-const PER_PAGE_OPTIONS = [6, 12, 24]
-
 // Figma layer "3729" - Personal cabinet for authenticated users
 export function Dashboard({ user, onLogout }: DashboardProps) {
+  const navigate = useNavigate()
+  const location = useLocation()
   const [userCourses, setUserCourses] = useState<UserCourse[]>([])
   const [totalCourses, setTotalCourses] = useState(0)
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
-  const [perPage, setPerPage] = useState(6)
+  const [perPage] = useState(6)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [pendingCount, setPendingCount] = useState(0)
 
   // Check if user is a teacher
   const isTeacher = user.role === 'teacher'
+
+  // Fetch pending submissions count for teachers
+  useEffect(() => {
+    if (!isTeacher) return
+    const token = localStorage.getItem('access_token')
+    if (!token) return
+
+    getPendingSubmissions(token, 'submitted')
+      .then(data => setPendingCount(data.total))
+      .catch(() => setPendingCount(0))
+  }, [isTeacher])
 
   // Fetch user's enrolled courses with server-side pagination
   const fetchCourses = useCallback(async () => {
@@ -87,6 +101,13 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
     fetchCourses()
   }, [fetchCourses])
 
+  // Refresh courses when navigating back to dashboard
+  useEffect(() => {
+    if (location.pathname === '/' || location.pathname === '/dashboard') {
+      fetchCourses()
+    }
+  }, [location.pathname, fetchCourses])
+
   // Handle new course creation - refresh from server to get correct pagination
   const handleCourseCreated = (_course: Course) => {
     // Go to first page and refresh to show the new course
@@ -97,9 +118,9 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
     }
   }
 
-  // Open course page in new tab
+  // Open course page in same tab
   const handleOpenCourse = (courseId: number) => {
-    window.open(`/courses/${courseId}`, '_blank')
+    navigate(`/courses/${courseId}`)
   }
 
   // Mock achievements from Figma - 147x147 circles, 58px bold icons
@@ -112,12 +133,6 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
 
   // Pagination - calculated from server total
   const totalPages = Math.ceil(totalCourses / perPage)
-
-  // Handle per-page change - reset to page 1
-  const handlePerPageChange = (newPerPage: number) => {
-    setPerPage(newPerPage)
-    setCurrentPage(1)
-  }
 
   return (
     <div className="min-h-screen bg-[#F8F8F8]">
@@ -206,15 +221,17 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
               {isTeacher && (
                 <div className="relative inline-block mt-3 lg:mt-4">
                   <button
-                    onClick={() => window.open('/assignments', '_blank')}
+                    onClick={() => navigate('/assignments')}
                     className="h-[40px] lg:h-[46px] xl:h-[50px] 2xl:h-[56px] px-5 lg:px-6 xl:px-8 2xl:px-10 bg-[#2C2D84] hover:bg-[#3d3e95] rounded-lg text-white text-[14px] lg:text-[16px] xl:text-[18px] 2xl:text-[20px] font-bold transition-colors font-['Montserrat']"
                   >
                     Проверить задания
                   </button>
-                  {/* Notification badge */}
-                  <span className="absolute -top-1.5 -right-1.5 lg:-top-2 lg:-right-2 w-6 h-6 lg:w-7 lg:h-7 2xl:w-8 2xl:h-8 bg-[#EA5616] rounded-full flex items-center justify-center text-white text-[14px] lg:text-[16px] xl:text-[18px] 2xl:text-[20px] font-semibold font-['Montserrat']">
-                    2
-                  </span>
+                  {/* Notification badge - show only if there are pending submissions */}
+                  {pendingCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 lg:-top-2 lg:-right-2 min-w-6 h-6 lg:min-w-7 lg:h-7 2xl:min-w-8 2xl:h-8 px-1.5 bg-[#EA5616] rounded-full flex items-center justify-center text-white text-[14px] lg:text-[16px] xl:text-[18px] 2xl:text-[20px] font-semibold font-['Montserrat']">
+                      {pendingCount > 99 ? '99+' : pendingCount}
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -355,84 +372,76 @@ export function Dashboard({ user, onLogout }: DashboardProps) {
             )}
           </div>
 
-          {/* Pagination and per-page selector */}
+          {/* Pagination - Figma style */}
           {totalCourses > 0 && (
-            <div className="relative flex items-center justify-center mt-10 lg:mt-14 2xl:mt-16">
-              {/* Pagination - centered */}
-              <div className="flex items-center gap-2 lg:gap-3 text-[#222222]">
-                {/* Previous page arrow */}
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="w-10 h-10 lg:w-12 lg:h-12 2xl:w-14 2xl:h-14 flex items-center justify-center rounded-lg bg-white disabled:opacity-30 hover:bg-gray-100 transition-colors"
-                >
-                  <svg className="w-5 h-5 lg:w-6 lg:h-6 2xl:w-7 2xl:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
+            <div className="flex items-center justify-center mt-10 lg:mt-14 2xl:mt-16 gap-[14px] font-['Montserrat']">
+              {/* Previous page arrow - Figma: stroke 4px, round cap */}
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="disabled:opacity-30 hover:opacity-70 transition-opacity"
+              >
+                <svg width="10" height="19" viewBox="0 0 10 19" fill="none" className="w-[8px] h-[16px] lg:w-[9px] lg:h-[18px] 2xl:w-[10px] 2xl:h-[19px]">
+                  <path d="M9 1L1 9.5L9 18" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
 
-                {/* Page numbers */}
-                <div className="flex items-center gap-1 lg:gap-2">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let page: number
-                    if (totalPages <= 5) {
-                      page = i + 1
-                    } else if (currentPage <= 3) {
-                      page = i + 1
-                    } else if (currentPage >= totalPages - 2) {
-                      page = totalPages - 4 + i
-                    } else {
-                      page = currentPage - 2 + i
+              {/* Page numbers - Figma: "1 2 3 4 5 ...29" format, 32px SemiBold */}
+              <div className="flex items-center gap-[14px] text-[20px] lg:text-[26px] 2xl:text-[32px] font-semibold text-black">
+                {(() => {
+                  const pages: (number | string)[] = []
+                  const maxVisible = 5
+
+                  if (totalPages <= maxVisible + 2) {
+                    // Show all pages if total is small
+                    for (let i = 1; i <= totalPages; i++) {
+                      pages.push(i)
                     }
-                    return page
-                  }).map(page => (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`w-10 h-10 lg:w-12 lg:h-12 2xl:w-14 2xl:h-14 flex items-center justify-center rounded-lg text-[16px] lg:text-[18px] 2xl:text-[20px] font-medium transition-colors ${
-                        page === currentPage
-                          ? 'bg-[#222222] text-white'
-                          : 'bg-white text-[#222222] hover:bg-gray-100'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
-                </div>
+                  } else {
+                    // Always show first 5 pages
+                    for (let i = 1; i <= Math.min(maxVisible, totalPages); i++) {
+                      pages.push(i)
+                    }
+                    // Add ellipsis and last page
+                    if (totalPages > maxVisible) {
+                      pages.push(`...${totalPages}`)
+                    }
+                  }
 
-                {/* Next page arrow */}
-                <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages || totalPages === 0}
-                  className="w-10 h-10 lg:w-12 lg:h-12 2xl:w-14 2xl:h-14 flex items-center justify-center rounded-lg bg-white disabled:opacity-30 hover:bg-gray-100 transition-colors"
-                >
-                  <svg className="w-5 h-5 lg:w-6 lg:h-6 2xl:w-7 2xl:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
+                  return pages.map((page, idx) => (
+                    typeof page === 'number' ? (
+                      <button
+                        key={idx}
+                        onClick={() => setCurrentPage(page)}
+                        className={`transition-opacity hover:opacity-70 ${
+                          page === currentPage ? 'opacity-100' : 'opacity-50'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    ) : (
+                      <button
+                        key={idx}
+                        onClick={() => setCurrentPage(totalPages)}
+                        className="opacity-50 hover:opacity-70 transition-opacity"
+                      >
+                        {page}
+                      </button>
+                    )
+                  ))
+                })()}
               </div>
 
-              {/* Per-page selector - absolute right */}
-              <div className="absolute right-0 flex items-center gap-3 text-[#222222]">
-                <span className="text-[14px] lg:text-[16px] 2xl:text-[18px] font-medium text-[#B4B4B4]">
-                  Показывать:
-                </span>
-                <div className="flex items-center gap-2">
-                  {PER_PAGE_OPTIONS.map(option => (
-                    <button
-                      key={option}
-                      onClick={() => handlePerPageChange(option)}
-                      className={`w-10 h-10 lg:w-12 lg:h-12 2xl:w-14 2xl:h-14 flex items-center justify-center rounded-lg text-[14px] lg:text-[16px] 2xl:text-[18px] font-medium transition-colors ${
-                        option === perPage
-                          ? 'bg-[#222222] text-white'
-                          : 'bg-white text-[#222222] hover:bg-gray-100'
-                      }`}
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              {/* Next page arrow - Figma: stroke 4px, round cap */}
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="disabled:opacity-30 hover:opacity-70 transition-opacity"
+              >
+                <svg width="10" height="19" viewBox="0 0 10 19" fill="none" className="w-[8px] h-[16px] lg:w-[9px] lg:h-[18px] 2xl:w-[10px] 2xl:h-[19px]">
+                  <path d="M1 1L9 9.5L1 18" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
             </div>
           )}
         </section>
