@@ -1,4 +1,13 @@
 import { API_BASE } from './config'
+import { handleUnauthorized } from './apiClient'
+
+// Helper to check response and handle 401
+function checkResponse(response: Response): Response {
+  if (response.status === 401) {
+    handleUnauthorized()
+  }
+  return response
+}
 
 export interface Lesson {
   id: number
@@ -46,11 +55,11 @@ export async function getCourseLessons(
     limit: limit.toString()
   })
 
-  const response = await fetch(`${API_BASE}/courses/${courseId}/lessons/?${params}`, {
+  const response = checkResponse(await fetch(`${API_BASE}/courses/${courseId}/lessons/?${params}`, {
     headers: {
       'Authorization': `Bearer ${token}`
     }
-  })
+  }))
 
   if (!response.ok) {
     throw new Error('Ошибка загрузки уроков')

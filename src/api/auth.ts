@@ -1,4 +1,5 @@
 import { API_BASE } from './config'
+import { handleUnauthorized } from './apiClient'
 
 export interface LoginRequest {
   email: string
@@ -72,6 +73,10 @@ export async function getCurrentUser(token: string): Promise<User> {
       Authorization: `Bearer ${token}`,
     },
   })
+
+  if (response.status === 401) {
+    handleUnauthorized()
+  }
 
   if (!response.ok) {
     throw new Error('Не авторизован')

@@ -1,4 +1,13 @@
 import { API_BASE } from './config'
+import { handleUnauthorized } from './apiClient'
+
+// Helper to check response and handle 401
+function checkResponse(response: Response): Response {
+  if (response.status === 401) {
+    handleUnauthorized()
+  }
+  return response
+}
 
 // Generic paginated response from backend
 export interface PaginatedResponse<T> {
@@ -63,11 +72,11 @@ export async function getMyCourses(
     limit: limit.toString()
   })
 
-  const response = await fetch(`${API_BASE}/my/courses?${queryParams}`, {
+  const response = checkResponse(await fetch(`${API_BASE}/my/courses?${queryParams}`, {
     headers: {
       'Authorization': `Bearer ${token}`
     }
-  })
+  }))
 
   if (!response.ok) {
     throw new Error('Ошибка загрузки ваших курсов')

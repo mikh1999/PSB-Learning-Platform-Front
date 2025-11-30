@@ -1,4 +1,13 @@
 import { API_BASE } from './config'
+import { handleUnauthorized } from './apiClient'
+
+// Helper to check response and handle 401
+function checkResponse(response: Response): Response {
+  if (response.status === 401) {
+    handleUnauthorized()
+  }
+  return response
+}
 
 export interface PendingSubmission {
   submission_id: number
@@ -42,11 +51,11 @@ export async function getPendingSubmissions(
 
   const url = `${API_BASE}/gradebook/pending${params.toString() ? '?' + params.toString() : ''}`
 
-  const response = await fetch(url, {
+  const response = checkResponse(await fetch(url, {
     headers: {
       'Authorization': `Bearer ${token}`
     }
-  })
+  }))
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Ошибка загрузки заданий' }))
