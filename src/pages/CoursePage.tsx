@@ -491,7 +491,7 @@ export function CoursePage() {
                       <h1 className="text-[22px] lg:text-[26px] font-extrabold text-[#222222] font-['Montserrat']">
                         Урок {lessons.findIndex(l => l.id === selectedLesson.id) + 1}: {selectedLesson.title}
                       </h1>
-                      {selectedLesson.content && !selectedLesson.content.startsWith('lessons/') && (
+                      {selectedLesson.content && !selectedLesson.content.includes('lessons/') && (
                         <p className="text-[14px] text-[#666666] mt-2 font-['Montserrat']">
                           {selectedLesson.content}
                         </p>
@@ -515,9 +515,21 @@ export function CoursePage() {
 
                     <div className="space-y-4">
                       {/* File material - detect type and show appropriate preview */}
-                      {selectedLesson.file_url && courseId && (() => {
-                        const fileType = getFileType(selectedLesson.file_url)
-                        const fileExt = getFileExtension(selectedLesson.file_url)
+                      {/* Check file_url first, fallback to content for legacy data */}
+                      {(() => {
+                        // Helper to normalize file path
+                        const normalizePath = (p: string | null | undefined): string | null => {
+                          if (!p) return null
+                          let path = p.startsWith('/') ? p.slice(1) : p
+                          if (path.startsWith('uploads/')) path = path.slice(8)
+                          return path.startsWith('lessons/') ? path : null
+                        }
+
+                        const filePath = normalizePath(selectedLesson.file_url) || normalizePath(selectedLesson.content)
+                        if (!filePath || !courseId) return null
+
+                        const fileType = getFileType(filePath)
+                        const fileExt = getFileExtension(filePath)
                         const token = localStorage.getItem('access_token') || undefined
 
                         // Video preview
@@ -725,7 +737,7 @@ export function CoursePage() {
                       })()}
 
                       {/* Text content - show if no file attached */}
-                      {selectedLesson.type === 'text' && !selectedLesson.content?.startsWith('lessons/') && selectedLesson.content && (
+                      {selectedLesson.type === 'text' && !selectedLesson.content?.includes('lessons/') && selectedLesson.content && (
                         <div className="border border-gray-200 rounded-lg p-4">
                           <div className="flex items-start gap-4">
                             <div className="w-10 h-10 bg-[#2C2D84]/10 rounded-lg flex items-center justify-center shrink-0">
