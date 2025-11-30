@@ -1,13 +1,4 @@
 import { API_BASE } from './config'
-import { handleUnauthorized } from './apiClient'
-
-// Helper to check response and handle 401
-function checkResponse(response: Response): Response {
-  if (response.status === 401) {
-    handleUnauthorized()
-  }
-  return response
-}
 
 export interface Assignment {
   id: number
