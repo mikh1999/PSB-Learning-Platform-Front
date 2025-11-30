@@ -527,11 +527,24 @@ export function AssignmentsPage() {
               ) : (
                 comments.map((comment) => (
                   <div key={comment.id} className="bg-gray-50 rounded-lg p-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-sm text-[#222222]">{comment.user_name}</span>
-                      <span className="text-xs text-gray-400">{formatDate(comment.created_at)}</span>
+                    <div className="flex items-start gap-3">
+                      {/* Avatar */}
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0 ${
+                        comment.author_role === 'teacher' ? 'bg-[#EA5616]' : 'bg-[#2C2D84]'
+                      }`}>
+                        {(comment.author_name || 'U').charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold text-sm text-[#222222]">{comment.author_name || 'Пользователь'}</span>
+                          {comment.author_role === 'teacher' && (
+                            <span className="text-xs bg-[#EA5616]/10 text-[#EA5616] px-1.5 py-0.5 rounded">Преподаватель</span>
+                          )}
+                          <span className="text-xs text-gray-400">{formatDate(comment.created_at)}</span>
+                        </div>
+                        <p className="text-sm text-gray-700">{comment.content}</p>
+                      </div>
                     </div>
-                    <p className="text-sm text-gray-700">{comment.content}</p>
                   </div>
                 ))
               )}

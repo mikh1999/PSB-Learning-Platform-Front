@@ -80,9 +80,9 @@ export function LessonModal({ isOpen, onClose, onSuccess, courseId, lesson }: Le
       if (file && (type === 'video' || type === 'file')) {
         setUploadProgress('Загрузка файла...')
         try {
-          await uploadLessonFile(token, courseId, savedLesson.id, file)
-          // Refresh lesson to get updated file_url
-          savedLesson = { ...savedLesson, file_url: 'uploaded' }
+          const uploadResult = await uploadLessonFile(token, courseId, savedLesson.id, file)
+          // Update lesson file_url with the file path from upload response
+          savedLesson = { ...savedLesson, file_url: uploadResult.file_path }
         } catch (uploadErr) {
           // If file upload failed for a new lesson, delete the lesson
           if (!isEditing) {

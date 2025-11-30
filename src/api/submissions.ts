@@ -124,7 +124,8 @@ export interface SubmissionComment {
   id: number
   submission_id: number
   user_id: number
-  user_name: string
+  author_name: string | null
+  author_role: string | null
   content: string
   created_at: string
 }
